@@ -7,7 +7,7 @@ cask "vzt-flow" do
 
   url "https://github.com/vonzelle-vzt/vzt-flow/releases/download/v#{version}/VZT.Flow_#{version}_#{arch}.dmg"
   name "VZT Flow"
-  desc "Local, on-device voice dictation for macOS — no cloud, no subscription"
+  desc "Local, on-device voice dictation — no cloud, no subscription"
   homepage "https://github.com/vonzelle-vzt/vzt-flow"
 
   livecheck do
@@ -16,9 +16,16 @@ cask "vzt-flow" do
   end
 
   auto_updates false
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "VZT Flow.app"
+
+  zap trash: [
+    "~/.config/vzt-flow",
+    "~/Library/Application Support/com.vzt.flow",
+    "~/Library/Preferences/com.vzt.flow.plist",
+    "~/Library/Saved Application State/com.vzt.flow.savedState",
+  ]
 
   caveats <<~EOS
     VZT Flow is unsigned (ad-hoc signature, no Apple Developer ID). On first
@@ -44,11 +51,4 @@ cask "vzt-flow" do
 
     Full docs: https://github.com/vonzelle-vzt/vzt-flow/blob/main/docs/USAGE-macOS.md
   EOS
-
-  zap trash: [
-    "~/.config/vzt-flow",
-    "~/Library/Application Support/com.vzt.flow",
-    "~/Library/Preferences/com.vzt.flow.plist",
-    "~/Library/Saved Application State/com.vzt.flow.savedState",
-  ]
 end
