@@ -16,6 +16,12 @@ brew tap vonzelle-vzt/vzt
 brew install --cask vzt-flow
 ```
 
+> **If `brew install --cask` errors that the tap/cask isn't trusted:** some
+> Homebrew versions refuse to install a cask from a third-party tap until it's
+> explicitly marked trusted. Run
+> `brew trust --cask vonzelle-vzt/vzt/vzt-flow` first, then re-run the install
+> command above.
+
 The cask installs `VZT Flow.app` to `/Applications`. It picks the Apple
 Silicon or Intel `.dmg` automatically based on your Mac's architecture.
 

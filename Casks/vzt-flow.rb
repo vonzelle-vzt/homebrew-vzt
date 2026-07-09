@@ -28,6 +28,10 @@ cask "vzt-flow" do
   ]
 
   caveats <<~EOS
+    If "brew install --cask" refused to install this cask as untrusted, run
+    "brew trust --cask vonzelle-vzt/vzt/vzt-flow" first, then re-run the
+    install — some Homebrew versions gate third-party taps that way.
+
     VZT Flow is unsigned (ad-hoc signature, no Apple Developer ID). On first
     launch, macOS Gatekeeper will refuse to open it via a normal double-click.
     Right-click (or Control-click) the app in /Applications and choose "Open",
