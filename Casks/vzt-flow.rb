@@ -1,9 +1,9 @@
 cask "vzt-flow" do
   arch arm: "aarch64", intel: "x64"
 
-  version "0.2.0"
-  sha256 arm:   "cce8c967e00b6dbe8ccd061e36995a18b29ae502db30cd6b3495ba54b334fc66",
-         intel: "6296eb8cdef6200896aa99905ac4551c171a6d9e444f07a65f95bda47368a1f2"
+  version "0.3.0"
+  sha256 arm:   "eccc348e7fc00f196f3397b6b7aa49618545aba1c6092460c226cc7ea3fdab3d",
+         intel: "f5806de5ad27a65e272996a7b34c086eb6840443178c5b430f91392b03cd1eff"
 
   url "https://github.com/vonzelle-vzt/vzt-flow/releases/download/v#{version}/VZT.Flow_#{version}_#{arch}.dmg"
   name "VZT Flow"
@@ -16,7 +16,7 @@ cask "vzt-flow" do
   end
 
   auto_updates false
-  depends_on macos: :monterey
+  depends_on macos: :ventura
 
   app "VZT Flow.app"
 
@@ -36,6 +36,9 @@ cask "vzt-flow" do
     launch, macOS Gatekeeper will refuse to open it via a normal double-click.
     Right-click (or Control-click) the app in /Applications and choose "Open",
     then confirm in the dialog — only required once.
+
+    Apple Silicon requires macOS 13.0; Intel requires macOS 13.3, because the
+    bundled onnxruntime library will not load below that.
 
     Grant these three permissions in System Settings → Privacy & Security
     before dictation will work:
