@@ -1,9 +1,9 @@
 cask "vzt-flow" do
   arch arm: "aarch64", intel: "x64"
 
-  version "0.3.0"
-  sha256 arm:   "eccc348e7fc00f196f3397b6b7aa49618545aba1c6092460c226cc7ea3fdab3d",
-         intel: "f5806de5ad27a65e272996a7b34c086eb6840443178c5b430f91392b03cd1eff"
+  version "0.3.1"
+  sha256 arm:   "9a023b12acd1d31b7ad3c1fbbdd8e6a5f082e3901dce6a3a456068070d04cd4f",
+         intel: "ffc9f88cdff09886a641c8f4865537ad6e36d9378287b0716fec2919f3ba322c"
 
   url "https://github.com/vonzelle-vzt/vzt-flow/releases/download/v#{version}/VZT.Flow_#{version}_#{arch}.dmg"
   name "VZT Flow"
@@ -32,10 +32,8 @@ cask "vzt-flow" do
     "brew trust --cask vonzelle-vzt/vzt/vzt-flow" first, then re-run the
     install — some Homebrew versions gate third-party taps that way.
 
-    VZT Flow is unsigned (ad-hoc signature, no Apple Developer ID). On first
-    launch, macOS Gatekeeper will refuse to open it via a normal double-click.
-    Right-click (or Control-click) the app in /Applications and choose "Open",
-    then confirm in the dialog — only required once.
+    VZT Flow is signed with an Apple Developer ID and notarized by Apple, with
+    the ticket stapled to the app, so it opens on a normal double-click.
 
     Apple Silicon requires macOS 13.0; Intel requires macOS 13.3, because the
     bundled onnxruntime library will not load below that.
@@ -57,11 +55,14 @@ cask "vzt-flow" do
     Without NO_APP=1 that script REPLACES /Applications/VZT Flow.app, leaving
     brew with a receipt for a bundle it no longer wrote.
 
-    After every "brew upgrade --cask vzt-flow", macOS silently drops the
-    Accessibility and Input Monitoring grants (this app is ad-hoc signed, so
-    its code identity changes each release and the old grants stop matching).
-    The hotkey will do nothing, and the System Settings checkbox will still
-    look ticked. Fix it by clearing the stale grants, then re-granting:
+    From 0.3.1 on, upgrades keep your Accessibility and Input Monitoring grants:
+    a Developer ID signature gives macOS a code requirement that names the team
+    rather than the exact binary, so it keeps matching across releases.
+
+    Upgrading FROM 0.3.0 or earlier costs one last re-grant. Those builds were
+    ad-hoc signed and their grants pinned the old binary's hash, so the hotkey
+    will silently do nothing while System Settings still shows a ticked box.
+    Clear the stale rows once, then re-grant when macOS asks:
       tccutil reset Accessibility com.vzt.flow
       tccutil reset ListenEvent com.vzt.flow
 
