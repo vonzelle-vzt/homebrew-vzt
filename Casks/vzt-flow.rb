@@ -51,10 +51,19 @@ cask "vzt-flow" do
     Qwen3 cleanup/polish model is additional). Make sure you're on a good
     connection before your first launch.
 
-    This cask installs the menu-bar app only. For the `flow` CLI, run:
-      curl -fsSL https://raw.githubusercontent.com/vonzelle-vzt/vzt-flow/main/scripts/install.sh | bash
-    (skip the app portion of that script since brew already installed it —
-    it detects an existing /Applications/VZT Flow.app and won't overwrite it)
+    This cask installs the menu-bar app only. For the `flow` CLI and the MCP
+    server, run the installer with NO_APP=1 so it leaves this cask's app alone:
+      NO_APP=1 curl -fsSL https://raw.githubusercontent.com/vonzelle-vzt/vzt-flow/main/scripts/install.sh | bash
+    Without NO_APP=1 that script REPLACES /Applications/VZT Flow.app, leaving
+    brew with a receipt for a bundle it no longer wrote.
+
+    After every "brew upgrade --cask vzt-flow", macOS silently drops the
+    Accessibility and Input Monitoring grants (this app is ad-hoc signed, so
+    its code identity changes each release and the old grants stop matching).
+    The hotkey will do nothing, and the System Settings checkbox will still
+    look ticked. Fix it by clearing the stale grants, then re-granting:
+      tccutil reset Accessibility com.vzt.flow
+      tccutil reset ListenEvent com.vzt.flow
 
     Full docs: https://github.com/vonzelle-vzt/vzt-flow/blob/main/docs/USAGE-macOS.md
   EOS
