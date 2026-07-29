@@ -1,0 +1,140 @@
+# This tap follows vonzelle-vzt/vzt-flow on its own, so a release upstream
+# never depends on anyone remembering to come here.
+#
+# It runs HERE rather than in the vzt-flow release workflow for one reason:
+# pushing a commit into this repo from that one would need a personal access
+# token stored as a secret. Polling from inside the tap needs nothing — the
+# built-in GITHUB_TOKEN already has write access to its own repository, and
+# the upstream release API is public. No secret to leak, expire, or forget to
+# rotate.
+#
+# Trade-off: brew users see a new version within a day of a release instead of
+# within seconds. For a cask that is the right trade.
+#
+# ONE THING TO KNOW: GitHub disables scheduled workflows in a repository with
+# no activity for 60 days. Each bump is a commit, so an active release cadence
+# keeps this alive by itself — but if vzt-flow goes 2+ months without a
+# release, check this repo's Actions tab (GitHub emails first) or just hit
+# "Run workflow", which works regardless.
+name: auto-bump
+
+on:
+  schedule:
+    # Daily. A cask lagging a release by a few hours is fine; a cask lagging
+    # it forever is the bug this prevents.
+    - cron: "0 7 * * *"
+  # Always available so a release can be picked up immediately without waiting
+  # for the cron, and so the job can be re-run by hand if it ever fails.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    env:
+      UPSTREAM: vonzelle-vzt/vzt-flow
+      CASK: Casks/vzt-flow.rb
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare the cask against the latest upstream release
+        id: check
+        run: |
+          set -euo pipefail
+          # Public repo, but authenticate anyway so we use this repo's much
+          # higher API rate limit rather than the shared anonymous one.
+          json="$(curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${UPSTREAM}/releases/latest")"
+
+          TAG="$(printf '%s' "$json" | jq -r '.tag_name // empty')"
+          PRERELEASE="$(printf '%s' "$json" | jq -r '.prerelease')"
+          if [ -z "$TAG" ]; then
+            echo "::error::could not read a tag_name from ${UPSTREAM}'s latest release"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+
+          # Read the version out of the cask rather than tracking it anywhere
+          # else — the file is the single source of truth for what brew serves.
+          CURRENT="$(sed -nE 's/^  version "(.*)"$/\1/p' "$CASK")"
+          if [ -z "$CURRENT" ]; then
+            echo "::error::could not read the current version from ${CASK} — its formatting may have changed"
+            exit 1
+          fi
+
+          echo "upstream=${VERSION}  cask=${CURRENT}  prerelease=${PRERELEASE}"
+
+          SKIP=false
+          if [ "$PRERELEASE" = "true" ] || [[ "$VERSION" == *-* ]]; then
+            # brew must keep serving the last stable build.
+            echo "::notice::${TAG} is a pre-release — leaving the cask at ${CURRENT}"
+            SKIP=true
+          elif [ "$VERSION" = "$CURRENT" ]; then
+            echo "::notice::cask is already at ${VERSION} — nothing to do"
+            SKIP=true
+          fi
+
+          {
+            echo "skip=${SKIP}"
+            echo "tag=${TAG}"
+            echo "version=${VERSION}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Download the published dmgs and hash them
+        if: steps.check.outputs.skip != 'true'
+        id: sha
+        run: |
+          set -euo pipefail
+          V="${{ steps.check.outputs.version }}"
+          TAG="${{ steps.check.outputs.tag }}"
+          BASE="https://github.com/${UPSTREAM}/releases/download/${TAG}"
+          for pair in "arm:aarch64" "intel:x64"; do
+            key="${pair%%:*}"; arch="${pair##*:}"
+            url="${BASE}/VZT.Flow_${V}_${arch}.dmg"
+            echo "fetching ${url}"
+            # --fail so a 404 stops the run instead of hashing an error page
+            # and publishing a cask nobody can install.
+            curl -fsSL --retry 3 --retry-delay 5 -o "${arch}.dmg" "$url"
+            sum="$(sha256sum "${arch}.dmg" | cut -d' ' -f1)"
+            if [ ${#sum} -ne 64 ]; then
+              echo "::error::computed a malformed sha256 for ${arch}"
+              exit 1
+            fi
+            echo "${key}=${sum}" >> "$GITHUB_OUTPUT"
+            echo "${arch}: ${sum}"
+          done
+
+      - name: Bump the cask
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/bump_cask.py \
+            "$CASK" \
+            "${{ steps.check.outputs.version }}" \
+            "${{ steps.sha.outputs.arm }}" \
+            "${{ steps.sha.outputs.intel }}"
+          ruby -c "$CASK"
+          sed -n '1,8p' "$CASK"
+
+      - name: Commit
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          V="${{ steps.check.outputs.version }}"
+          # Idempotent: a re-run for the same version is a no-op, not an
+          # empty commit.
+          if git diff --quiet; then
+            echo "::notice::cask already at ${V} — nothing to commit"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$CASK"
+          git commit -m "vzt-flow ${V}" \
+                     -m "Automated: followed ${UPSTREAM} ${{ steps.check.outputs.tag }}. sha256 computed from the published dmgs."
+          git push
+          echo "::notice::cask bumped to ${V} — brew upgrade now serves it"
