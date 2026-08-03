@@ -1,9 +1,9 @@
 cask "vzt-flow" do
   arch arm: "aarch64", intel: "x64"
 
-  version "0.3.4"
-  sha256 arm:   "72c85bc2d4b87cdc7715b985efaaf4d5a35d6fd6884c71671edf7e6f16bcf521",
-         intel: "ac264d254a55c73640b2135a3671436dac98e800e13c5d383234d89eccccbebf"
+  version "0.3.5"
+  sha256 arm:   "b2a8c10b54721232906ddf371dfe2aaea4113a8922765296ecbdc53ef89a9e8e",
+         intel: "cce28bf3cac54b627622c196db24303526ce1ae8b920a369c3f08a940f7900b8"
 
   url "https://github.com/vonzelle-vzt/vzt-flow/releases/download/v#{version}/VZT.Flow_#{version}_#{arch}.dmg"
   name "VZT Flow"
